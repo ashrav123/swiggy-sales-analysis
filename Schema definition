@@ -1,0 +1,129 @@
+--creating dimension tables for date table
+create table dim_date(
+date_id serial primary key,
+full_Date date,
+year int,
+month int,
+month_name varchar(20),
+quarter int,
+day int,
+week int
+);
+
+
+--location
+create table dim_location(
+location_id serial primary key,
+state varchar(100),
+city varchar(100),
+location varchar(100)
+);
+
+--restaurant
+create table dim_restaurant(
+restaurant_id serial primary key,
+restaurant_name varchar(300)
+);
+
+--dish
+create table dim_dish(
+dish_id serial primary key,
+dish_name varchar(300)
+);
+
+--category
+create table dim_category(
+category_id serial primary key,
+category varchar(300)
+);
+
+--fact table
+
+create table fact_swiggy (
+order_id serial primary key,
+date_id int,
+price_inr decimal(10,2),
+rating decimal(4,2),
+rating_count int,
+location_id int,
+category_id int,
+restaurant_id int,
+dish_id int,
+foreign key (date_id) references dim_date(date_id),
+foreign key (dish_id) references dim_dish(dish_id),
+foreign key (location_id) references dim_location(location_id),
+foreign key (category_id) references dim_category(category_id),
+foreign key (restaurant_id) references dim_restaurant(restaurant_id)
+);
+
+Final step: loading the data into both tables.
+
+insert into dim_date(Full_date, year, month, month_name, quarter, day, week)
+select DISTINCT
+    order_date,
+    EXTRACT(YEAR FROM order_date)::INT,
+    EXTRACT(MONTH FROM order_date)::INT,
+    TRIM(TO_CHAR(order_date, 'Month')),
+    EXTRACT(QUARTER FROM order_date)::INT,
+    EXTRACT(DAY FROM order_date)::INT,
+    EXTRACT(WEEK FROM order_date)::INT
+	FROM swiggy_orders
+WHERE order_date IS NOT NULL;
+
+
+insert into dim_location(state, city, location)
+select distinct
+state, city, location
+from swiggy_orders;
+
+insert into dim_restaurant(restaurant_name)
+select distinct
+restaurant_name
+from swiggy_orders;
+
+insert into dim_dish(dish_name)
+select distinct
+dish_name
+from swiggy_orders;
+
+insert into dim_category(category)
+select distinct
+category
+from swiggy_orders;
+
+
+--fact table
+
+insert into fact_swiggy(
+date_id,
+price_inr,
+rating,
+rating_count,
+location_id,
+restaurant_id,
+category_id,
+dish_id
+)
+select 
+dd.date_id,
+s.price_inr,
+s.rating,
+s.rating_count,
+dl.location_id,
+dr.restaurant_id,
+dc.category_id,
+dsh.dish_id
+from swiggy_orders s
+join dim_date dd
+on dd.full_date=s.order_Date
+join dim_location dl
+on dl.state=s.state
+and dl.city=s.city
+and dl.location=s.location
+join dim_restaurant dr
+on dr.restaurant_name=s.restaurant_name
+join dim_category dc
+on dc.category=s.category
+join dim_dish dsh
+on dsh.dish_name=s.dish_name;
+
