@@ -1,0 +1,83 @@
+This file contains the query to clean the data in the table.
+
+1. The table was created using the query below:
+CREATE TABLE swiggy_orders (
+    state VARCHAR(100),
+    city VARCHAR(100),
+    order_date DATE,
+    restaurant_name VARCHAR(300),
+    location VARCHAR(100),
+    category VARCHAR(100),
+    dish_name VARCHAR(300),
+    price_inr NUMERIC(10,2),
+    rating NUMERIC(3,2),
+    rating_count INTEGER
+);
+
+2. The data was loaded from a csv file using the import option in postgresql.
+
+3. --data validation
+SELECT
+    SUM(CASE WHEN state IS NULL THEN 1 ELSE 0 END)           AS null_state,
+    SUM(CASE WHEN city IS NULL THEN 1 ELSE 0 END)            AS null_city,
+    SUM(CASE WHEN dish_name IS NULL THEN 1 ELSE 0 END)       AS null_dish_name,
+    SUM(CASE WHEN location IS NULL THEN 1 ELSE 0 END)        AS null_location,
+    SUM(CASE WHEN order_date IS NULL THEN 1 ELSE 0 END)      AS null_order_date,
+    SUM(CASE WHEN restaurant_name IS NULL THEN 1 ELSE 0 END) AS null_restaurant_name,
+    SUM(CASE WHEN category IS NULL THEN 1 ELSE 0 END)        AS null_category,
+    SUM(CASE WHEN rating IS NULL THEN 1 ELSE 0 END)          AS null_rating,
+    SUM(CASE WHEN rating_count IS NULL THEN 1 ELSE 0 END)    AS null_rating_count,
+    SUM(CASE WHEN price_inr IS NULL THEN 1 ELSE 0 END)       AS null_price_inr
+FROM swiggy_orders;
+
+--blank or empty values
+SELECT
+    COUNT(*) FILTER (WHERE state = '') AS blank_state,
+    COUNT(*) FILTER (WHERE city = '') AS blank_city,
+    COUNT(*) FILTER (WHERE restaurant_name = '') AS blank_restaurant_name,
+    COUNT(*) FILTER (WHERE location = '') AS blank_location,
+    COUNT(*) FILTER (WHERE category = '') AS blank_category,
+    COUNT(*) FILTER (WHERE dish_name = '') AS blank_dish_name
+FROM swiggy_orders;
+
+--to find duplicates
+SELECT
+    state,
+    city,
+    order_date,
+    restaurant_name,
+    location,
+    category,
+    dish_name,
+    price_inr,
+    rating,
+    rating_count,
+    COUNT(*) AS duplicate_count
+FROM swiggy_orders
+GROUP BY
+    state,
+    city,
+    order_date,
+    restaurant_name,
+    location,
+    category,
+    dish_name,
+    price_inr,
+    rating,
+    rating_count
+HAVING COUNT(*) > 1
+ORDER BY duplicate_count DESC;
+
+--deletion of duplication
+DELETE FROM swiggy_orders a
+WHERE a.ctid NOT IN (
+    SELECT MIN(b.ctid)
+    FROM swiggy_orders b
+    GROUP BY
+        state, city, order_date, restaurant_name,
+        location, category, dish_name, price_inr,
+        rating, rating_count
+);
+
+
+
