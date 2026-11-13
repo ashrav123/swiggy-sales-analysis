@@ -1,9 +1,9 @@
 # swiggy-sales-analysis
-SQL-based sales analysis of Swiggy orders using MySQL
+SQL-based sales analysis of Swiggy orders using PostgresSQL
 
 1. **Project Overview**:
    
-This project focuses on analyzing Swiggy restaurant sales data using MySQL to uncover business insights related to revenue performance, restaurant performance, geographical trends, and customer ordering patterns.
+This project focuses on analyzing Swiggy restaurant sales data using PostgresSQL to uncover business insights related to revenue performance, restaurant performance, geographical trends, and customer ordering patterns.
 
 The project involves data cleaning, database structuring, and SQL-based business analysis to demonstrate how relational databases and SQL can be used to solve real-world business problems.
 
@@ -28,11 +28,11 @@ g) Generate insights that can support business decision-making.
 
 3. **Tools & Technologies**
 
-Database: MySQL
+Database: PostgresSQL
 
 Querying Language: SQL
 
-IDE: MySQL Workbench
+IDE: PostgresSQL Pgadmin
 
 4. **Database Design**
 
