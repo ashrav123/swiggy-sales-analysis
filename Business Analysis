@@ -7,26 +7,27 @@
 
 
 -- ============================================================
--- Q1. WHERE IS REVENUE CONCENTRATED?
+-- Q1. WHERE IS Demand CONCENTRATED?
 -- ============================================================
 
 -- Business Objective:
--- Identify the states and cities contributing the highest
--- revenue to understand geographical revenue concentration.
+-- Identify the states and cities contributing the highest demand
 
 -- SQL Concepts: INNER JOIN, GROUP BY, SUM, ORDER BY
+
+-- Q1. WHERE IS DEMAND CONCENTRATED?
 
 SELECT
     l.state,
     l.city,
-    SUM(s.price_inr) AS total_revenue
+    COUNT(DISTINCT s.order_id) AS total_orders
 FROM dim_location l
 JOIN fact_swiggy s
     ON s.location_id = l.location_id
 GROUP BY
     l.state,
     l.city
-ORDER BY total_revenue DESC;
+ORDER BY total_orders DESC;
 
 
 -- ============================================================
