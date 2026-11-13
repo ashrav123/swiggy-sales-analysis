@@ -1,0 +1,167 @@
+--1. WHERE IS DEMAND CONCENTRATED?
+
+SELECT
+    l.state,
+    l.city,
+    COUNT(DISTINCT s.order_id) AS total_orders
+FROM dim_location l
+JOIN fact_swiggy s
+    ON s.location_id = l.location_id
+GROUP BY
+    l.state,
+    l.city
+ORDER BY total_orders DESC;
+
+2.--what is our average deal price?
+
+select c.category, l.city, d.dish_name, avg(s.price_inr) as average_price
+from fact_swiggy s
+join dim_location l on s.location_id=l.location_id
+join dim_dish d on d.dish_id=s.dish_id
+join dim_category c on s.category_id=c.category_id
+group by c.category, l.city,  d.dish_name
+order by sum(s.price_inr) desc;
+
+
+3.--Which categories are the revenue engine?
+SELECT
+    c.category,
+    COUNT(*) AS total_orders,
+    SUM(f.price_inr) AS total_revenue,
+    ROUND(AVG(f.price_inr), 2) AS average_price
+FROM fact_swiggy f
+JOIN dim_category c
+    ON f.category_id = c.category_id
+GROUP BY c.category
+ORDER BY total_revenue DESC;
+
+
+4.--Growth over time:
+
+select  d.quarter, d.month_name, sum(f.price_inr) as rev
+from fact_swiggy f 
+join dim_date d on f.date_id=d.date_id
+group by d.quarter, d.month_name;
+
+
+5.--Which tier drives the most demand, and which has the best ratings?
+
+SELECT
+    CASE
+        WHEN price_inr < 200 THEN 'Budget'
+        WHEN price_inr BETWEEN 200 AND 500 THEN 'Mid'
+        ELSE 'Premium'
+    END AS price_segment,
+
+    COUNT(*) AS total_dishes,
+
+    ROUND(SUM(price_inr), 2) AS total_dish_value,
+
+    ROUND(AVG(price_inr), 2) AS average_price,
+
+    ROUND(AVG(rating), 2) AS average_rating,
+
+    COUNT(rating) AS total_ratings
+
+FROM fact_swiggy
+
+GROUP BY price_segment
+
+ORDER BY average_rating DESC;
+
+6.--Which account should be given priority?
+
+WITH city_demand AS (
+    SELECT
+        dl.state,
+        dl.city,
+        SUM(f.rating_count) AS total_demand
+    FROM fact_swiggy f
+    JOIN dim_location dl
+        ON dl.location_id = f.location_id
+    GROUP BY dl.state, dl.city
+),
+avg_demand AS (
+    SELECT AVG(total_demand) AS avg_city_demand
+    FROM city_demand
+)
+SELECT
+    c.state,
+    c.city,
+    c.total_demand,
+    ROUND(a.avg_city_demand, 0) AS avg_city_demand
+FROM city_demand c
+CROSS JOIN avg_demand a
+WHERE c.total_demand > a.avg_city_demand
+ORDER BY c.total_demand DESC;
+
+
+--.7. Revenue and order performance by month
+SELECT
+    l.city,
+    SUM(f.price_inr) AS reve
+FROM fact_swiggy f
+JOIN dim_location l
+    ON f.location_id = l.location_id
+GROUP BY l.city
+ORDER BY SUM(f.price_inr);
+
+--8.Identify the top-performing cities and states
+SELECT
+    l.state,
+    l.city,
+    COUNT(f.order_id) AS total_orders,
+    SUM(f.price_inr) AS total_revenue,
+    ROUND(AVG(f.price_inr), 2) AS avg_order_value
+FROM fact_swiggy f
+JOIN dim_location l
+    ON f.location_id = l.location_id
+GROUP BY
+    l.state,
+    l.city
+ORDER BY total_revenue DESC;
+
+
+
+--9.Identify the top 3 dishes by revenue within each food category
+WITH dish_revenue AS (
+    SELECT
+        c.category,
+        d.dish_name,
+        r.restaurant_name,
+        SUM(f.price_inr) AS total_revenue,
+        COUNT(f.order_id) AS total_orders
+    FROM fact_swiggy f
+    JOIN dim_dish d
+        ON f.dish_id = d.dish_id
+    JOIN dim_category c
+        ON f.category_id = c.category_id
+    JOIN dim_restaurant r
+        ON f.restaurant_id = r.restaurant_id
+    GROUP BY
+        c.category,
+        d.dish_name,
+        r.restaurant_name
+),
+
+ranked_dishes AS (
+    SELECT
+        *,
+        DENSE_RANK() OVER (
+            PARTITION BY category
+            ORDER BY total_revenue DESC
+        ) AS dish_rank
+    FROM dish_revenue
+)
+
+SELECT
+    category,
+    dish_name,
+    restaurant_name,
+    total_revenue,
+    total_orders,
+    dish_rank
+FROM ranked_dishes
+WHERE dish_rank <= 3
+ORDER BY category, dish_rank;
+
